@@ -117,10 +117,19 @@ class ElasticsearchQuery
     public function fullTextSearchTrigrams($column, $keyword){
         $this->search = [
             "match" => [
-                $column => BuildTrigrams($keyword)
+                $column => $this->buildTrigrams($keyword)
             ]
         ];
         return $this;
+    }
+
+    private function buildTrigrams($keyword)
+    {
+        $t = "__" . $keyword . "__";
+        $trigrams = "";
+        for ($i = 0; $i < mb_strlen($t, "UTF-8") - 2; $i++)
+            $trigrams .= mb_substr($t, $i, 3, "UTF-8") . " ";
+        return $trigrams;
     }
 
     public function delete($id){
@@ -267,3 +276,4 @@ class ElasticsearchQuery
     }
 
 }
+
