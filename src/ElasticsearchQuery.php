@@ -1,7 +1,9 @@
 <?php
 
-namespace Ngocnm\Elastic;
+namespace Ngocnm\ElasticQuery;
 
+
+use Elasticsearch\ClientBuilder;
 
 class ElasticsearchQuery
 {
@@ -17,9 +19,11 @@ class ElasticsearchQuery
     private $convert_data = true;
     private $more_like_this = null;
     private $filter = [];
+    private $client = null;
 
     public function __construct(string $index, string $doc)
     {
+        $this->client = ClientBuilder::create()->setHosts([env('ELASTIC_HOST','localhost').":".env("ELASTIC_PORT",9200)])->build();
         $this->index = $index;
         $this->doc = $doc;
     }
@@ -126,7 +130,7 @@ class ElasticsearchQuery
                 'type' => $this->doc,
                 'id' => $id
             ];
-            app('elastic')->delete($params);
+            $this->client->delete($params);
             return true;
         }catch (\Exception $e){
             return false;
@@ -146,7 +150,7 @@ class ElasticsearchQuery
             ];
             $params['body'][] = $value;
         }
-        app('elastic')->bulk($params);
+        $this->client->bulk($params);
     }
 
     public function deleteMulti(){
@@ -169,7 +173,7 @@ class ElasticsearchQuery
         }
         if(count($this->range_query))$params['body']['query']['bool']['must'][] = ['range'=>$this->range_query];
         try{
-            $data_search = app('elastic')->deleteByQuery($params);
+            $data_search = $this->client->deleteByQuery($params);
             return $data_search;
         }catch (\Exception $error){
             if(env('APP_DEBUG')){
@@ -232,7 +236,7 @@ class ElasticsearchQuery
         }
         if($this->more_like_this!=null) $params['body']['query']['bool']['must'][] = ['more_like_this'=>$this->more_like_this];
         try{
-            $data_search = app('elastic')->search($params);
+            $data_search = $this->client->search($params);
         }catch (\Exception $error){
             if(env('APP_DEBUG')){
                 dd([

@@ -16,11 +16,11 @@
     ],
     "require": {
         "php": ">=5.5.0",
-        "../../elasticsearch/elasticsearch": "^7.6"
+        "elasticsearch/elasticsearch": "^7.6"
     },
     "autoload": {
         "psr-4": {
-            "Ngocnm\\Elastic\\": "src/"
+            "Ngocnm\\ElasticQuery\\": "src/"
         }
     },
     "license": "LGPL-2.1-only"
