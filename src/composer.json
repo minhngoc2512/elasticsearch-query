@@ -1,0 +1,27 @@
+{
+    "name": "ngocnm/elastic-query",
+    "type": "library",
+    "description": "Elasticsearch query",
+    "authors": [
+        {
+            "name": "Mr.Ngoc",
+            "email": "minhngoc2512@yahoo.com"
+        }
+    ],
+    "funding": [
+        {
+            "url": "https://github.com/minhngoc2512/elasticsearch-query",
+            "type": "github"
+        }
+    ],
+    "require": {
+        "php": ">=5.5.0",
+        "elasticsearch/elasticsearch": "^7.6"
+    },
+    "autoload": {
+        "psr-4": {
+            "Ngocnm\\Elastic\\": "src/"
+        }
+    },
+    "license": "LGPL-2.1-only"
+}
