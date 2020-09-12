@@ -24,7 +24,7 @@ class ElasticsearchQuery
     private $terms_not = [];
     private $range_query_not = [];
 
-    public function __construct(string $index, string $doc)
+    public function __construct(string $index, string $doc=null)
     {
         $this->client = ClientBuilder::create()->setHosts([env('ELASTIC_HOST','localhost').":".env("ELASTIC_PORT",9200)])->build();
         $this->index = $index;
