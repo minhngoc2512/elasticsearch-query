@@ -4,6 +4,7 @@ namespace Ngocnm\ElasticQuery;
 
 
 use Elasticsearch\ClientBuilder;
+use phpDocumentor\Reflection\DocBlock\Tags\Throws;
 
 class ElasticsearchQuery
 {
@@ -20,6 +21,8 @@ class ElasticsearchQuery
     private $more_like_this = null;
     private $filter = [];
     private $client = null;
+    private $terms_not = [];
+    private $range_query_not = [];
 
     public function __construct(string $index, string $doc)
     {
@@ -63,6 +66,39 @@ class ElasticsearchQuery
     public function whereBetween(string $column, array $value)
     {
         $this->range_query[$column] = ['gte' => $value[0], 'lte' => $value[1]];
+        return $this;
+    }
+
+    public function whereNot($column, $value_1, $value_2 = null)
+    {
+        if ($value_2 != null) {
+            if ($value_1 == '>') {
+                $this->range_query_not[$column] = ['gte' => $value_2];
+            } else if ($value_1 == '<') {
+                $this->range_query_not[$column] = ['lte' => $value_2];
+            }
+        } else {
+            $this->terms_not[] = [
+                "terms" => [
+                    $column => [$value_1]
+                ]
+            ];
+        }
+        return $this;
+    }
+
+    public function whereNotIn($column,$value){
+        $this->terms_not[] = [
+            "terms" => [
+                $column => $value
+            ]
+        ];
+        return $this;
+    }
+
+    public function whereNotBetween( $column,  $value)
+    {
+        $this->range_query_not[$column] = ['gte' => $value[0], 'lte' => $value[1]];
         return $this;
     }
 
@@ -181,6 +217,12 @@ class ElasticsearchQuery
             }
         }
         if(count($this->range_query))$params['body']['query']['bool']['must'][] = ['range'=>$this->range_query];
+        if(count($this->terms_not)!=0) {
+            foreach ($this->terms_not as $value){
+                $params['body']['query']['bool']['must_not'][]  =$value;
+            }
+        }
+        if(count($this->range_query_not))$params['body']['query']['bool']['must_not'][] = ['range'=>$this->range_query_not];
         try{
             $data_search = $this->client->deleteByQuery($params);
             return $data_search;
@@ -196,8 +238,8 @@ class ElasticsearchQuery
                     'json_query'=>json_encode($params)
                 ]);
             }else{
-                echo "Error";
-                exit();
+                throw new \Exception('elasticsearch error');
+                return false;
             }
         }
     }
@@ -219,31 +261,54 @@ class ElasticsearchQuery
         return isset($value[0])?$value[0]:[];
     }
 
-    public function get(bool $info_query=false){
+    private function buildQuery(){
         $params = [
             'index' => $this->index,
             'type' => $this->doc,
             'body' => [
-                "query"=>[
+                "query" => [
                     "bool" => [
                         "must" => []
                     ]
-                ],
-                "from" =>$this->from,
-                "size" => $this->limit
+
+                ]
             ]
         ];
-        if($this->search!=null) $params['body']['query']['bool']['must'][] =$this->search;
+        if($this->search!=null){
+            if(count($this->search)>1){
+                foreach ($this->search as $value){
+                    $params['body']['query']['bool']['must'][] =$value;
+                }
+            }else{
+                $params['body']['query']['bool']['must'][] =$this->search;   
+            }
+        }
         if(count($this->range_query))$params['body']['query']['bool']['must'][] = ['range'=>$this->range_query];
         if($this->source!=null) $params['body']['_source'] = $this->source;
         if($this->sort!=null) $params['body']['sort'] = [$this->sort];
         if(count($this->filter)!=0)   $params['body']['query']['bool']['filter'] = $this->filter;
+        if(count($this->terms_not)!=0) {
+            foreach ($this->terms_not as $value){
+                $params['body']['query']['bool']['must_not'][]  =$value;
+            }
+        }
+        if(count($this->range_query_not))$params['body']['query']['bool']['must_not'][] = ['range'=>$this->range_query_not];
         if(count($this->terms)!=0){
             foreach ($this->terms as $value){
                 $params['body']['query']['bool']['must'][] =$value;
             }
         }
         if($this->more_like_this!=null) $params['body']['query']['bool']['must'][] = ['more_like_this'=>$this->more_like_this];
+        return $params;
+    }
+
+    public function get(bool $info_query=false){
+        $data_search = ['hits'=>['hits'=>[]]];
+        $params =  $this->buildQuery();
+        $params['body']['from'] = $this->from;
+        $params['body']['size'] = $this->limit;
+        if($this->source!=null) $params['body']['_source'] = $this->source;
+        if($this->sort!=null) $params['body']['sort'] = [$this->sort];
         try{
             $data_search = $this->client->search($params);
         }catch (\Exception $error){
@@ -258,8 +323,8 @@ class ElasticsearchQuery
                     'json_query'=>json_encode($params)
                 ]);
             }else{
-                echo "Error";
-                exit();
+                throw new \Exception('elasticsearch error');
+                return [];
             }
         }
         if($info_query===false){
@@ -272,6 +337,31 @@ class ElasticsearchQuery
             return $value;
         }
         $data_search['query'] = $params;
+        return $data_search;
+    }
+
+    function count(){
+        $params =  $this->buildQuery();
+        $data_search = [];
+        try{
+            $data_search = $this->client->count($params);
+            $data_search = isset($data_search['count'])?$data_search['count']:0;
+        }catch (\Exception $error){
+            if(env('APP_DEBUG')){
+                dd([
+                    'status' =>'Error',
+                    'message'=>$error->getMessage(),
+                    'line'=>$error->getLine(),
+                    'code'=>$error->getCode(),
+                    'file'=>$error->getFile(),
+                    'query'=>$params,
+                    'json_query'=>json_encode($params)
+                ]);
+            }else{
+                throw new \Exception('elasticsearch error');
+                return 0;
+            }
+        }
         return $data_search;
     }
 
