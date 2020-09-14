@@ -24,9 +24,9 @@ class ElasticsearchQuery
     private $terms_not = [];
     private $range_query_not = [];
 
-    public function __construct(string $index, string $doc)
+    public function __construct(string $index, string $doc=null)
     {
-        $this->client = ClientBuilder::create()->setHosts([env('ELASTIC_HOST','localhost').":".env("ELASTIC_PORT",9200)])->build();
+        $this->client = app('elastic_query');
         $this->index = $index;
         $this->doc = $doc;
     }
@@ -258,7 +258,7 @@ class ElasticsearchQuery
     public function first(){
         $this->limit = 1;
         $value = $this->get();
-        return isset($value[0])?$value[0]:[];
+        return isset($value[0])?$value[0]:null;
     }
 
     private function buildQuery(){
@@ -280,7 +280,7 @@ class ElasticsearchQuery
                     $params['body']['query']['bool']['must'][] =$value;
                 }
             }else{
-                $params['body']['query']['bool']['must'][] =$this->search;   
+                $params['body']['query']['bool']['must'][] =$this->search;
             }
         }
         if(count($this->range_query))$params['body']['query']['bool']['must'][] = ['range'=>$this->range_query];
@@ -365,5 +365,18 @@ class ElasticsearchQuery
         return $data_search;
     }
 
-}
+     static function indexExists($name){
+//        $client = ClientBuilder::create()->setHosts([env('ELASTIC_HOST','localhost').":".env("ELASTIC_PORT",9200)])->build();
+        return app('elastic_query')->indices()->exists(['index'=>$name]);
+     }
 
+     static function deleteIndex($name){
+//         $client = ClientBuilder::create()->setHosts([env('ELASTIC_HOST','localhost').":".env("ELASTIC_PORT",9200)])->build();
+         return app('elastic_query')->indices()->delete(['index' =>$name]);
+     }
+
+     static function createIndex($query){
+//         $client = ClientBuilder::create()->setHosts([env('ELASTIC_HOST','localhost').":".env("ELASTIC_PORT",9200)])->build();
+         return app('elastic_query')->indices()->create($query);
+     }
+}
