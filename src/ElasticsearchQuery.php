@@ -4,7 +4,6 @@ namespace Ngocnm\ElasticQuery;
 
 
 use Elasticsearch\ClientBuilder;
-use phpDocumentor\Reflection\DocBlock\Tags\Throws;
 
 class ElasticsearchQuery
 {
