@@ -122,7 +122,7 @@ class ElasticsearchQuery
 
     public function queryString($column, $keyword)
     {
-        $this->search = [
+        $this->search[] = [
             "match" => [
                 $column => $keyword
             ]
@@ -150,7 +150,7 @@ class ElasticsearchQuery
     }
 
     public function fullTextSearchTrigrams($column, $keyword){
-        $this->search = [
+        $this->search[] = [
             "match" => [
                 $column => $this->buildTrigrams($keyword)
             ]
@@ -273,14 +273,8 @@ class ElasticsearchQuery
                 ]
             ]
         ];
-        if($this->search!=null){
-            if(count($this->search)>1){
-                foreach ($this->search as $value){
-                    $params['body']['query']['bool']['must'][] =$value;
-                }
-            }else{
-                $params['body']['query']['bool']['must'][] =$this->search;
-            }
+        foreach ($this->search as $value){
+            $params['body']['query']['bool']['must'][] =$value;
         }
         if(count($this->range_query))$params['body']['query']['bool']['must'][] = ['range'=>$this->range_query];
         if($this->source!=null) $params['body']['_source'] = $this->source;
