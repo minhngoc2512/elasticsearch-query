@@ -60,6 +60,7 @@ class ElasticsearchQuery
                 $column => $value
             ]
         ];
+        return $this;
     }
 
     public function whereBetween(string $column, array $value)
