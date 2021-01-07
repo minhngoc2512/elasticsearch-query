@@ -317,7 +317,7 @@ class ElasticsearchQuery
                     'json_query'=>json_encode($params)
                 ]);
             }else{
-                throw new \Exception('elasticsearch error');
+                throw new \Exception('elasticsearch error:'.$error->getMessage());
                 return [];
             }
         }
