@@ -10,7 +10,7 @@ $app->register(\Ngocnm\ElasticQuery\ElasticsearchServiceProvider::class);
 ```
 - Define env
 ```dotenv
-ELASTIC_HOST = localhost
+ELASTIC_HOST = localhost,localhost_2
 ELASTIC_PORT = 9200
 ```
 - Config without laravel lumen 
