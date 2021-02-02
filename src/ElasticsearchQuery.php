@@ -178,6 +178,7 @@ class ElasticsearchQuery
             $this->client->delete($params);
             return true;
         }catch (\Exception $e){
+            throw new \Exception("elasticsearch delete error:".$e->getMessage());
             return false;
         }
 
@@ -227,20 +228,8 @@ class ElasticsearchQuery
             $data_search = $this->client->deleteByQuery($params);
             return $data_search;
         }catch (\Exception $error){
-            if(env('APP_DEBUG')){
-                dd([
-                    'status' =>'Error',
-                    'message'=>$error->getMessage(),
-                    'line'=>$error->getLine(),
-                    'code'=>$error->getCode(),
-                    'file'=>$error->getFile(),
-                    'query'=>$params,
-                    'json_query'=>json_encode($params)
-                ]);
-            }else{
-                throw new \Exception('elasticsearch error');
-                return false;
-            }
+            throw new \Exception('elasticsearch error:'.$error->getMessage());
+            return false;
         }
     }
 
@@ -306,20 +295,8 @@ class ElasticsearchQuery
         try{
             $data_search = $this->client->search($params);
         }catch (\Exception $error){
-            if(env('APP_DEBUG')){
-                dd([
-                    'status' =>'Error',
-                    'message'=>$error->getMessage(),
-                    'line'=>$error->getLine(),
-                    'code'=>$error->getCode(),
-                    'file'=>$error->getFile(),
-                    'query'=>$params,
-                    'json_query'=>json_encode($params)
-                ]);
-            }else{
-                throw new \Exception('elasticsearch error:'.$error->getMessage());
-                return [];
-            }
+            throw new \Exception('elasticsearch error:'.$error->getMessage());
+            return [];
         }
         if($info_query===false){
             $value = [];
@@ -341,20 +318,8 @@ class ElasticsearchQuery
             $data_search = $this->client->count($params);
             $data_search = isset($data_search['count'])?$data_search['count']:0;
         }catch (\Exception $error){
-            if(env('APP_DEBUG')){
-                dd([
-                    'status' =>'Error',
-                    'message'=>$error->getMessage(),
-                    'line'=>$error->getLine(),
-                    'code'=>$error->getCode(),
-                    'file'=>$error->getFile(),
-                    'query'=>$params,
-                    'json_query'=>json_encode($params)
-                ]);
-            }else{
-                throw new \Exception('elasticsearch error');
-                return 0;
-            }
+            throw new \Exception('elasticsearch error:'.$error->getMessage());
+            return 0;
         }
         return $data_search;
     }
