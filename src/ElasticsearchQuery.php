@@ -26,8 +26,8 @@ class ElasticsearchQuery
     public function __construct(string $index, string $doc=null)
     {
         $this->client = app('elastic_query');
-        $this->index = $index;
-        $this->doc = $doc;
+        $this->index = ELASTICSEARCH_INDEX_PREFIX.$index;
+        $this->doc =$doc;
     }
 
     public function select(string $fields)
@@ -171,11 +171,13 @@ class ElasticsearchQuery
     public function delete($id){
         try{
             $params = [
-                'index' => $this->index,
-                'type' => $this->doc,
-                'id' => $id
+                '_index' => $this->index,
+                '_type' => $this->doc,
+                '_id' => $id
             ];
+            $time_start = microtime(true);
             $this->client->delete($params);
+            self::logQuery($params,$time_start,"DELETE");
             return true;
         }catch (\Exception $e){
             throw new \Exception("elasticsearch delete error:".$e->getMessage());
@@ -186,17 +188,30 @@ class ElasticsearchQuery
 
     public function insertOrUpdate(array $data,$primary_key){
         $params = ['body' => []];
-        foreach ($data as $value){
+        if(isset($data[0])){
+            foreach ($data as $value){
+                $params['body'][] = [
+                    'index' => [
+                        '_index' => $this->index,
+                        '_type' => $this->doc,
+                        '_id' => $value[$primary_key]
+                    ]
+                ];
+                $params['body'][] = $value;
+            }
+        }else{
             $params['body'][] = [
                 'index' => [
                     '_index' => $this->index,
                     '_type' => $this->doc,
-                    '_id' => $value[$primary_key]
+                    '_id' => $data[$primary_key]
                 ]
             ];
-            $params['body'][] = $value;
+            $params['body'][] = $data;
         }
+        $time_start = microtime(true);
         $this->client->bulk($params);
+        self::logQuery($params,$time_start,"INSERT_OR_UPDATE");
     }
 
     public function deleteMulti(){
@@ -225,7 +240,9 @@ class ElasticsearchQuery
         }
         if(count($this->range_query_not))$params['body']['query']['bool']['must_not'][] = ['range'=>$this->range_query_not];
         try{
+            $time_start = microtime(true);
             $data_search = $this->client->deleteByQuery($params);
+            self::logQuery($params,$time_start,"DELETE_MULTI");
             return $data_search;
         }catch (\Exception $error){
             throw new \Exception('elasticsearch error:'.$error->getMessage());
@@ -293,7 +310,9 @@ class ElasticsearchQuery
         if($this->source!=null) $params['body']['_source'] = $this->source;
         if($this->sort!=null) $params['body']['sort'] = [$this->sort];
         try{
+            $time_start = microtime(true);
             $data_search = $this->client->search($params);
+            self::logQuery($params,$time_start,"GET");
         }catch (\Exception $error){
             throw new \Exception('elasticsearch error:'.$error->getMessage());
             return [];
@@ -315,7 +334,9 @@ class ElasticsearchQuery
         $params =  $this->buildQuery();
         $data_search = [];
         try{
+            $time_start = microtime(true);
             $data_search = $this->client->count($params);
+            self::logQuery($params,$time_start,"COUNT");
             $data_search = isset($data_search['count'])?$data_search['count']:0;
         }catch (\Exception $error){
             throw new \Exception('elasticsearch error:'.$error->getMessage());
@@ -324,18 +345,62 @@ class ElasticsearchQuery
         return $data_search;
     }
 
-     static function indexExists($name){
-//        $client = ClientBuilder::create()->setHosts([env('ELASTIC_HOST','localhost').":".env("ELASTIC_PORT",9200)])->build();
-        return app('elastic_query')->indices()->exists(['index'=>$name]);
-     }
+    static function indexExists($name){
+        $time_start = microtime(true);
+        $query = ['index' => ELASTICSEARCH_INDEX_PREFIX.$name];
+        $value = app('elastic_query')->indices()->exists($query);
+        self::logQuery($query,$time_start,"INDEX_EXISTS");
+        return $value;
+    }
 
-     static function deleteIndex($name){
-//         $client = ClientBuilder::create()->setHosts([env('ELASTIC_HOST','localhost').":".env("ELASTIC_PORT",9200)])->build();
-         return app('elastic_query')->indices()->delete(['index' =>$name]);
-     }
+    static function deleteIndex($name){
+        $time_start = microtime(true);
+        $query = ['index' => ELASTICSEARCH_INDEX_PREFIX.$name];
+        $value = app('elastic_query')->indices()->delete($query);
+        self::logQuery($query,$time_start,"DELETE_INDEX");
+        return $value;
+    }
 
-     static function createIndex($query){
-//         $client = ClientBuilder::create()->setHosts([env('ELASTIC_HOST','localhost').":".env("ELASTIC_PORT",9200)])->build();
-         return app('elastic_query')->indices()->create($query);
-     }
+    static function createIndex($query){
+        $time_start = microtime(true);
+        $value =  app('elastic_query')->indices()->create($query);
+        self::logQuery($query,$time_start,"CREATE_INDEX");
+        return $value;
+    }
+
+    static function createIndexByOptions($name,$number_of_shards=15,$number_of_replicas=1,$mappings=null){
+        $query = [
+            'index' => ELASTICSEARCH_INDEX_PREFIX.$name,
+            'body' => [
+                'settings' => [
+                    'number_of_shards' => $number_of_shards,
+                    'number_of_replicas' => $number_of_replicas
+                ]
+            ]
+        ];
+        if(!empty($mappings&&is_array($mappings))){
+            $query['body']['mappings']  = $mappings;
+        }
+        $time_start = microtime(true);
+        $value =  app('elastic_query')->indices()->create($query);
+        self::logQuery($query,$time_start,"CREATE_INDEX");
+        return $value;
+    }
+
+    static function logQuery($query,$time_start,$type='GET'){
+        if(!empty(ELASTICSEARCH_LOG_DEBUGBAR)&&ELASTICSEARCH_LOG_DEBUGBAR===true){
+            $time_end = microtime(true);
+            $time =(string) (($time_end - $time_start)*1000);
+            $time = round($time);
+            $debug_backtrace = array_filter(debug_backtrace(),function($file){
+                return !isset($file['file'])||strpos($file['file'],'vendor')===false;
+            });
+            $debug_backtrace = array_map(function ($file){
+                unset($file['object']);
+                unset($file['args']);
+                return $file;
+            },$debug_backtrace);
+            \Barryvdh\Debugbar\Facade::getCollector('elasticsearch')->addMessage(['time'=>$time.'ms','query'=>$query,'debug_backtrace'=>$debug_backtrace],$type);
+        }
+    }
 }

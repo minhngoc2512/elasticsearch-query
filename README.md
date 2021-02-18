@@ -10,10 +10,15 @@ $app->register(\Ngocnm\ElasticQuery\ElasticsearchServiceProvider::class);
 ```
 - Define env
 ```dotenv
-ELASTIC_HOST = localhost,localhost_2
-ELASTIC_PORT = 9200
+ELASTIC_HOST = localhost,localhost_2 #default: localhost
+ELASTIC_PORT = 9200 #default: 9200
+ELASTIC_INDEX_PREFIX = project_1 #default: null
+ELASTIC_USERNAME= root #default: null
+ELASTIC_PASSWORD= admin #default: null
+ELASTIC_SCHEME = https #default: http
+ELASTIC_PATH= /data/elastic #default: null
 ```
-- Config without laravel lumen 
+- Config without laravel lumen
     - Create singleton with key: ```elastic_query```
         ```php
         $this->app->singleton('elastic_query', function ($app) {
@@ -68,7 +73,7 @@ $response = $client->delete($id);
 ```php
 $response = $client->where('field_name',$value)->deleteMulti();
 ```
-- QueryString - Fulltext search 
+- QueryString - Fulltext search
 ```php
 $response = $client->queryString('field_name',$keyword)->get();
 ```
@@ -101,10 +106,40 @@ $response = $client->select('field_1,field_2')->fullTextSearchTrigrams('field_na
 ```php
 Ngocnm\ElasticQuery\ElasticsearchQuery::deleteIndex($name_index);
 ```
-- CreateIndex index
+- CreateIndex index by query
 ```php
+$query_create = [
+        'index' => $index_name,
+        'body' => [
+            'settings' => [
+                'number_of_shards' => 15,
+                'number_of_replicas' => 1
+            ]
+        ]
+    ];
+    
 Ngocnm\ElasticQuery\ElasticsearchQuery::createIndex($query_create);
 ```
+- CreateIndex index by options
+
+```php
+$index_name = 'index_demo';
+$number_of_shards = 15; // default:15
+$number_of_replicas = 1; // default:15
+$mappings = [
+                '_source' => [
+                    'enabled' => true
+                ],
+                'properties' => [
+                    'location' => [
+                        'type' => 'geo_point'
+                    ]
+                ]
+            ]; // default:[]
+Ngocnm\ElasticQuery\ElasticsearchQuery::createIndexByOptions($index_name,$number_of_shards,$number_of_replicas,$mappings);
+```
+[Document mapping](https://www.elastic.co/guide/en/elasticsearch/client/php-api/current/index_management.html)
+
 - Check index exist
 ```php
 Ngocnm\ElasticQuery\ElasticsearchQuery::indexExists($name_index);
