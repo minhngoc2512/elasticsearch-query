@@ -388,7 +388,7 @@ class ElasticsearchQuery
     }
 
     static function logQuery($query,$time_start,$type='GET'){
-        if(!empty(ELASTICSEARCH_LOG_DEBUGBAR)&&ELASTICSEARCH_LOG_DEBUGBAR===true){
+        if(defined('ELASTICSEARCH_LOG_DEBUGBAR')&&ELASTICSEARCH_LOG_DEBUGBAR===true){
             $time_end = microtime(true);
             $time =(string) (($time_end - $time_start)*1000);
             $time = round($time);
