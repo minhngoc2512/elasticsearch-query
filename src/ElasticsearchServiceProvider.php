@@ -27,6 +27,8 @@ class ElasticsearchServiceProvider extends ServiceProvider
         if(env('APP_DEBUG')===true&&class_exists('Barryvdh\Debugbar\Facade')){
             \Barryvdh\Debugbar\Facade::addCollector(new \DebugBar\DataCollector\MessagesCollector('elasticsearch'));
             define('ELASTICSEARCH_LOG_DEBUGBAR',true);
+        }else{
+            define('ELASTICSEARCH_LOG_DEBUGBAR',false);
         }
         define('ELASTICSEARCH_INDEX_PREFIX',env('ELASTIC_INDEX_PREFIX',''));
         $this->app->singleton('elastic_query', function ($app) {
