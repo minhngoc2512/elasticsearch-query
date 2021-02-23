@@ -171,9 +171,9 @@ class ElasticsearchQuery
     public function delete($id){
         try{
             $params = [
-                '_index' => $this->index,
-                '_type' => $this->doc,
-                '_id' => $id
+                'index' => $this->index,
+                'type' => $this->doc,
+                'id' => $id
             ];
             $time_start = microtime(true);
             $this->client->delete($params);
