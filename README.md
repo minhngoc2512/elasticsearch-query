@@ -129,6 +129,11 @@ $response = $client->select('field_1,field_2')->fullTextSearchTrigrams('field_na
 ```php
 $reponse = $client->insertOrUpdate($data,'name_field_id_unique');
 ```
+- Update multi documents with condition (Update by query)
+```php
+  $data_update = ['field'=>'new_value','field_2'=>'new_value_2'];
+  $response = $client->where('field_condition','value_condition')->update($data_update);
+```
 - Delete index
 ```php
 Ngocnm\ElasticQuery\ElasticsearchQuery::deleteIndex($name_index);

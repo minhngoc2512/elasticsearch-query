@@ -214,6 +214,29 @@ class ElasticsearchQuery
         self::logQuery($params,$time_start,"INSERT_OR_UPDATE");
     }
 
+    function update(array $data){
+        if(count($data)==0) return false;
+        $fields = '';
+        foreach ($data as $k=>$v){
+            $fields .="ctx._source.{$k} = $v;";
+        }
+        $fields = trim($fields,';');
+        $query = $this->buildQuery();
+        $query['body']['script'] = [
+            "inline"=> $fields,
+            'lang'=>'painless'
+        ];
+        try{
+            $time_start = microtime(true);
+            $data_return = $this->client->updateByQuery($query);
+            self::logQuery($query,$time_start,"UPDATE_BY_QUERY");
+            return $data_return['updated'];
+        }catch (\Exception $error){
+            throw new \Exception('elasticsearch error:'.$error->getMessage());
+            return false;
+        }
+    }
+
     public function deleteMulti(){
         $params = [
             'index' => $this->index,
