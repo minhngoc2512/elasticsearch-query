@@ -102,6 +102,33 @@ $response = $client->select('field_1,field_2')->whereNotBetween('field_name',$va
 ```php
 $response = $client->select('field_1,field_2')->fullTextSearchTrigrams('field_name',$keyword)->get();
 ```
+- Insert a document or multi documents
+    - Insert or update a document
+        ```php
+        $data = [
+            'field_id_unique'=>1,
+            'field_1'=>$value_1,
+            'field_2'=>$value_2
+        ];
+        ```
+    - Insert or update multi documents
+        ```php
+        $data = [
+              [
+                  'field_id_unique'=>1,
+                  'field_1'=>$value_1,
+                  'field_2'=>$value_2
+              ],
+              [
+                  'field_id_unique'=>2,
+                  'field_1'=>$value_1,
+                  'field_2'=>$value_2
+              ]
+      ];
+        ```
+```php
+$reponse = $client->insertOrUpdate($data,'name_field_id_unique');
+```
 - Delete index
 ```php
 Ngocnm\ElasticQuery\ElasticsearchQuery::deleteIndex($name_index);
