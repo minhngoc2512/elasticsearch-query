@@ -77,6 +77,25 @@ $response = $client->where('field_name',$value)->deleteMulti();
 ```php
 $response = $client->queryString('field_name',$keyword)->get();
 ```
+- Full Text Search Trigrams query
+```php
+$response = $client->select('field_1,field_2')->fullTextSearchTrigrams('field_name',$keyword)->get();
+```
+
+- Full Text Search moreLikeThis query: [Document moreLikeThis](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-mlt-query.html)
+```php
+$column = 'field';
+//or
+$column = ['field_1','field_2'];
+$keyword = 'keyword_search';
+$config = [
+     "min_term_freq" => 1,
+     "max_query_terms" => 12
+];//default:null
+
+$response = $client->select('field_1,field_2')->moreLikeThis($column,$keyword,$config)->get();
+```
+
 - WhereIn  query
 ```php
 $value = [23,4,5,...];
@@ -97,10 +116,6 @@ $response = $client->whereNotIn('field_name',$value)->get();
 ```php
 $value = ['value_1','value_2'];
 $response = $client->select('field_1,field_2')->whereNotBetween('field_name',$value)->get();
-```
-- Full Text Search Trigrams query
-```php
-$response = $client->select('field_1,field_2')->fullTextSearchTrigrams('field_name',$keyword)->get();
 ```
 - Insert a document or multi documents
     - Insert or update a document
