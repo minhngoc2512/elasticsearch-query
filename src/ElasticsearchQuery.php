@@ -22,6 +22,8 @@ class ElasticsearchQuery
     private $client = null;
     private $terms_not = [];
     private $range_query_not = [];
+    private $regexp = [];
+    private $span_near = null;
 
     public function __construct(string $index, string $doc=null)
     {
@@ -102,6 +104,17 @@ class ElasticsearchQuery
         return $this;
     }
 
+    public function regexQuery(string $column, string $regexp, string $flags="ALL",bool $case_insensitive = true, int $max_determinitive = 10000, string $rewrite = "constant_score"){
+        $this->regexp[$column] = [
+            "value" => $regexp,
+            "flags" => $flags,
+            "case_insensitive" => $case_insensitive,
+            "max_determinitive" => $max_determinitive,
+            "rewrite" => $rewrite
+        ];
+        return $this;
+    }
+
     public function orderBy($column, $sort = 'asc')
     {
 //        $this->sort = [$column => ['order' => $sort]];
@@ -121,10 +134,10 @@ class ElasticsearchQuery
         return $this;
     }
 
-    public function queryString($column, $keyword)
+    public function queryString($column, $keyword, $type_match = 'match')
     {
         $this->search[] = [
-            "match" => [
+            $type_match => [
                 $column => $keyword
             ]
         ];
@@ -150,16 +163,33 @@ class ElasticsearchQuery
         return $this;
     }
 
-    public function fullTextSearchTrigrams($column, $keyword){
+    public function fullTextSearchTrigrams($column, $keyword, $type_match = 'match'){
         $this->search[] = [
-            "match" => [
-                $column => $this->buildTrigrams($keyword)
+            $type_match => [
+                $column => self::buildTrigrams($keyword)
             ]
         ];
         return $this;
     }
 
-    private function buildTrigrams($keyword)
+    public function spanNearQuery($field, $spans_term, int $slop = 1, bool $in_order = false){
+        $clauses = [];
+        if(is_array($spans_term)){
+            foreach ($spans_term as $span_term){
+                $clauses[] = ["span_term" => [$field => $span_term]];
+            }
+        }else{
+            $clauses[] = ["span_term" => [$field => $spans_term]];
+        }
+        $this->span_near = [
+            "clauses" => $clauses,
+            "slop" => $slop,
+            "in_order" => $in_order
+        ];
+        return $this;
+    }
+
+    static function buildTrigrams($keyword)
     {
         $t = "__" . $keyword . "__";
         $trigrams = "";
@@ -297,7 +327,6 @@ class ElasticsearchQuery
             'body' => [
                 "query" => [
                     "bool" => [
-                        "must" => []
                     ]
 
                 ]
@@ -322,6 +351,8 @@ class ElasticsearchQuery
             }
         }
         if($this->more_like_this!=null) $params['body']['query']['bool']['must'][] = ['more_like_this'=>$this->more_like_this];
+        if(count($this->regexp)!=0) $params['body']['query']['bool']['filter']['regexp']= $this->regexp;
+        if($this->span_near!==null) $params['body']['query']['bool']['should']['span_near'] = $this->span_near;
         return $params;
     }
 
