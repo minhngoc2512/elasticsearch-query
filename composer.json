@@ -16,7 +16,7 @@
     ],
     "require": {
         "php": ">=7.2.0",
-        "elasticsearch/elasticsearch": "^7.6"
+        "elasticsearch/elasticsearch": "^7.11.0"
     },
     "autoload": {
         "psr-4": {
