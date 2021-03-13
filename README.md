@@ -144,6 +144,46 @@ $response = $client->select('field_1,field_2')->whereNotBetween('field_name',$va
 ```php
 $reponse = $client->insertOrUpdate($data,'name_field_id_unique');
 ```
+
+- Customize function functionScore
+```php
+$keyword = "key search";
+$matchs = ['filed' =>'field_name_match', 'value'=>'value_match', 'wieght' => 24]; 
+//or 
+$matchs = [ 
+        ['filed' =>'field_name_match', 'value'=>'value_match', 'wieght' => 24],
+        ['filed' =>'field_name_match_1', 'value'=>'value_match_1', 'wieght' => 42]
+    ];
+    
+$boost = 5;// default: 5; 
+$max_boost = 42; // default: 42;
+$min_score = 23;// default: 23;
+$boost_mode = 'multiply'; // default: multiply;
+// multiply :scores are multiplied (default)
+// sum : scores are summed
+// avg : scores are averaged
+// first : the first function that has a matching filter is applied
+
+$score_mode = 'max'; // default: max;
+// max : maximum score is used
+// min : minimum score is used
+
+
+$response = $client->queryString('field_name',$keyword)->functionScore($matchs, $boost, $max_boost,$min_score, $boost_mode, $score_mode)->get();
+```
+[Document functionScore](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-function-score-query.html)
+
+- Span near query
+```php
+  $field = 'field_name';
+  $spans_term = ['value_1','value_2'];
+  $slop = 1;//default: 1 
+  $in_order = false;// default: false;
+  
+  $response = $client->spanNearQuery($field, $spans_term,  $slop = 1, $in_order);
+```
+[Document span near](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-span-near-query.html)
+
 - Update multi documents with condition (Update by query)
 ```php
   $data_update = ['field'=>'new_value','field_2'=>'new_value_2'];
