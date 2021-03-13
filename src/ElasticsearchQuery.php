@@ -24,6 +24,7 @@ class ElasticsearchQuery
     private $range_query_not = [];
     private $regexp = [];
     private $span_near = null;
+    private $function_score = null;
 
     public function __construct(string $index, string $doc=null)
     {
@@ -104,16 +105,16 @@ class ElasticsearchQuery
         return $this;
     }
 
-    public function regexQuery(string $column, string $regexp, string $flags="ALL",bool $case_insensitive = true, int $max_determinitive = 10000, string $rewrite = "constant_score"){
-        $this->regexp[$column] = [
-            "value" => $regexp,
-            "flags" => $flags,
-            "case_insensitive" => $case_insensitive,
-            "max_determinitive" => $max_determinitive,
-            "rewrite" => $rewrite
-        ];
-        return $this;
-    }
+//    public function regexQuery(string $column, string $regexp, string $flags="ALL",bool $case_insensitive = true, int $max_determinitive = 10000, string $rewrite = "constant_score"){
+//        $this->regexp[$column] = [
+//            "value" => $regexp,
+//            "flags" => $flags,
+//            "case_insensitive" => $case_insensitive,
+//            "max_determinitive" => $max_determinitive,
+//            "rewrite" => $rewrite
+//        ];
+//        return $this;
+//    }
 
     public function orderBy($column, $sort = 'asc')
     {
@@ -314,6 +315,43 @@ class ElasticsearchQuery
         return $this;
     }
 
+    public function functionScore(array $matchs, int $boost=5,int $max_boost=42,int $min_score=23,string $boost_mode = "multiply", string $score_mode ='max'){
+        if(!isset($matchs[0])){
+            $matchs = [$matchs];
+        }
+        $functions = array_map(function ($match){
+            $match_return = [];
+            if(!isset($match['field'])){
+                throw new \Exception("functionScore error: Not found field");
+            }
+            if(!isset($match['value'])){
+                throw new \Exception("functionScore error: Not found value");
+            }
+            if(!isset($match['weight'])){
+                throw new \Exception("functionScore error: Not found weight");
+            }
+            $match_return = [
+                "filter" => [
+                    "match" =>[
+                        $match['field'] =>  $match['value']
+                    ]
+                ],
+                "weight" => $match['weight']
+            ];
+            return $match_return;
+        },$matchs);
+
+        $this->function_score = [
+                "boost" => $boost,
+                "functions" =>$functions,
+                "max_boost" => $max_boost,
+                "score_mode" => $score_mode,
+                "boost_mode" => $boost_mode,
+                "min_score" => $min_score
+            ];
+        return $this;
+    }
+
     public function first(){
         $this->limit = 1;
         $value = $this->get();
@@ -325,11 +363,6 @@ class ElasticsearchQuery
             'index' => $this->index,
             'type' => $this->doc,
             'body' => [
-                "query" => [
-                    "bool" => [
-                    ]
-
-                ]
             ]
         ];
         foreach ($this->search as $value){
@@ -353,6 +386,17 @@ class ElasticsearchQuery
         if($this->more_like_this!=null) $params['body']['query']['bool']['must'][] = ['more_like_this'=>$this->more_like_this];
         if(count($this->regexp)!=0) $params['body']['query']['bool']['filter']['regexp']= $this->regexp;
         if($this->span_near!==null) $params['body']['query']['bool']['should']['span_near'] = $this->span_near;
+        if($this->function_score!=null){
+            $query_function_score = [];
+            if(!empty($params['body']['query'])){
+                $query_function_score = $params['body']['query'];
+            }else{
+                $query_function_score = [];
+            }
+            $params['body']['query'] = [];
+            $params['body']['query']['function_score'] = $this->function_score;
+            if(!empty($query_function_score)) $params['body']['query']['function_score']['query'] = $query_function_score;
+        }
         return $params;
     }
 
