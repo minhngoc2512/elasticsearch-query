@@ -180,7 +180,7 @@ $response = $client->queryString('field_name',$keyword)->functionScore($matchs, 
   $slop = 1;//default: 1 
   $in_order = false;// default: false;
   
-  $response = $client->spanNearQuery($field, $spans_term,  $slop = 1, $in_order);
+  $response = $client->spanNearQuery($field, $spans_term,  $slop, $in_order);
 ```
 [Document span near](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-span-near-query.html)
 
