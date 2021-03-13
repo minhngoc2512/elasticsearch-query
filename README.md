@@ -145,7 +145,7 @@ $response = $client->select('field_1,field_2')->whereNotBetween('field_name',$va
 $reponse = $client->insertOrUpdate($data,'name_field_id_unique');
 ```
 
-- Customize function functionScore
+- Customize functionScore
 ```php
 $keyword = "key search";
 $matchs = ['filed' =>'field_name_match', 'value'=>'value_match', 'wieght' => 24]; 
