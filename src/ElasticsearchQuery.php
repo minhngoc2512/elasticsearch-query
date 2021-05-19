@@ -132,6 +132,7 @@ class ElasticsearchQuery
     public function offset( $offset)
     {
         $this->from =(int) $offset;
+        if($this->from<0) $this->from = 0;
         return $this;
     }
 
