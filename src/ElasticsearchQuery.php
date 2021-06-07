@@ -462,6 +462,7 @@ class ElasticsearchQuery
 
     static function createIndex($query){
         $time_start = microtime(true);
+        $query['index'] = ELASTICSEARCH_INDEX_PREFIX.$query['index'];
         $value =  app('elastic_query')->indices()->create($query);
         self::logQuery($query,$time_start,"CREATE_INDEX");
         return $value;
