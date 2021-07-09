@@ -19,12 +19,13 @@ ELASTIC_SCHEME = https #default: http
 ELASTIC_PATH= /data/elastic #default: null
 ELASTICSEARCH_SSN_LOG_DEBUGBAR = true # add log query to debugbar  on core sosanhnha
 ```
+
 - Config without laravel lumen
-    - Create singleton with key: ```elastic_query```
+    - Create singleton with key (elastic_query):
         ```php
       define('ELASTICSEARCH_INDEX_PREFIX',env('ELASTIC_INDEX_PREFIX',''));
       define('ELASTICSEARCH_SSN_LOG_DEBUGBAR',env('ELASTICSEARCH_SSN_LOG_DEBUGBAR',false));
-        
+     
       $app->singleton("elastic_query",function(){
             $hosts = env('ELASTIC_HOST','localhost');
             $hosts_config = [
@@ -51,10 +52,17 @@ ELASTICSEARCH_SSN_LOG_DEBUGBAR = true # add log query to debugbar  on core sosan
             }
             return ClientBuilder::create()->setHosts($hosts)->build();
         });
+
+#Get query log
+
+```php
+$query_log =\Ngocnm\ElasticQuery\ElasticsearchQueryLog::getLog();
 ```
+
 #Query
 - Create Object
-```php
+
+```
  $client = new Ngocnm\ElasticQuery\ElasticsearchQuery('index_name');
 ```
 - Select query
