@@ -25,12 +25,25 @@ class ElasticsearchQuery
     private $regexp = [];
     private $span_near = null;
     private $function_score = null;
+    private $cache = false;
+    private $cache_timeout = null;
 
     public function __construct(string $index, string $doc=null)
     {
         $this->client = app('elastic_query');
-        $this->index = ELASTICSEARCH_INDEX_PREFIX.$index;
+        $this->index = (defined('ELASTICSEARCH_INDEX_PREFIX')?ELASTICSEARCH_INDEX_PREFIX:'').$index;
         $this->doc =$doc;
+    }
+
+    //driver_cache: redis,database,
+    //time_cache: int (second)
+    public function cache(int $time = 0){
+        if(!defined("LARAVEL_START")){
+            throw new \Exception("Cache function only has on laravel framework!");
+        }
+        $this->cache = true;
+        if(!empty($time)) $this->cache_timeout = $time;
+        return $this;
     }
 
     public function select(string $fields)
@@ -132,7 +145,6 @@ class ElasticsearchQuery
     public function offset( $offset)
     {
         $this->from =(int) $offset;
-        if($this->from<0) $this->from = 0;
         return $this;
     }
 
@@ -410,8 +422,26 @@ class ElasticsearchQuery
         if($this->sort!=null) $params['body']['sort'] = [$this->sort];
         try{
             $time_start = microtime(true);
-            $data_search = $this->client->search($params);
-            self::logQuery($params,$time_start,"GET");
+            $key_debug = "GET";
+            if($this->cache){
+                $key_debug .="_CACHE";
+                $key_cache = md5(json_encode($params)."_get");
+                if(!empty($this->cache_timeout)){
+
+                    $data_search = \Illuminate\Support\Facades\Cache::driver()->remember($key_cache,$this->cache_timeout,function () use ($params,&$key_debug){
+                        $key_debug = "GET";
+                        return $this->client->search($params);
+                    });
+                }else{
+                    $data_search = \Illuminate\Support\Facades\Cache::rememberForever($key_cache,function () use ($params,&$key_debug){
+                        $key_debug = "GET";
+                        return $this->client->search($params);
+                    });
+                }
+            }else{
+                $data_search = $this->client->search($params);
+            }
+            self::logQuery($params,$time_start,$key_debug);
         }catch (\Exception $error){
             throw new \Exception('elasticsearch error:'.$error->getMessage());
             return [];
@@ -434,7 +464,26 @@ class ElasticsearchQuery
         $data_search = [];
         try{
             $time_start = microtime(true);
-            $data_search = $this->client->count($params);
+            $key_debug = "COUNT";
+            if($this->cache){
+                $key_debug .="_CACHE";
+                $key_cache = md5(json_encode($params)."_count");
+                if(!empty($this->cache_timeout)){
+
+                    $data_search = \Illuminate\Support\Facades\Cache::driver()->remember($key_cache,$this->cache_timeout,function () use ($params,&$key_debug){
+                        $key_debug = "COUNT";
+                        return $this->client->count($params);
+                    });
+                }else{
+                    $data_search = \Illuminate\Support\Facades\Cache::rememberForever($key_cache,function () use ($params,&$key_debug){
+                        $key_debug = "COUNT";
+                        return $this->client->count($params);
+                    });
+                }
+            }else{
+                $data_search = $this->client->count($params);
+            }
+
             self::logQuery($params,$time_start,"COUNT");
             $data_search = isset($data_search['count'])?$data_search['count']:0;
         }catch (\Exception $error){
@@ -446,7 +495,7 @@ class ElasticsearchQuery
 
     static function indexExists($name){
         $time_start = microtime(true);
-        $query = ['index' => ELASTICSEARCH_INDEX_PREFIX.$name];
+        $query = ['index' => (defined('ELASTICSEARCH_INDEX_PREFIX')?ELASTICSEARCH_INDEX_PREFIX:'').$name];
         $value = app('elastic_query')->indices()->exists($query);
         self::logQuery($query,$time_start,"INDEX_EXISTS");
         return $value;
@@ -454,7 +503,7 @@ class ElasticsearchQuery
 
     static function deleteIndex($name){
         $time_start = microtime(true);
-        $query = ['index' => ELASTICSEARCH_INDEX_PREFIX.$name];
+        $query = ['index' => (defined('ELASTICSEARCH_INDEX_PREFIX')?ELASTICSEARCH_INDEX_PREFIX:'').$name];
         $value = app('elastic_query')->indices()->delete($query);
         self::logQuery($query,$time_start,"DELETE_INDEX");
         return $value;
@@ -462,7 +511,6 @@ class ElasticsearchQuery
 
     static function createIndex($query){
         $time_start = microtime(true);
-        $query['index'] = ELASTICSEARCH_INDEX_PREFIX.$query['index'];
         $value =  app('elastic_query')->indices()->create($query);
         self::logQuery($query,$time_start,"CREATE_INDEX");
         return $value;
@@ -470,7 +518,7 @@ class ElasticsearchQuery
 
     static function createIndexByOptions($name,$number_of_shards=15,$number_of_replicas=1,$mappings=null){
         $query = [
-            'index' => ELASTICSEARCH_INDEX_PREFIX.$name,
+            'index' => (defined('ELASTICSEARCH_INDEX_PREFIX')?ELASTICSEARCH_INDEX_PREFIX:'').$name,
             'body' => [
                 'settings' => [
                     'number_of_shards' => $number_of_shards,
@@ -500,7 +548,20 @@ class ElasticsearchQuery
                 unset($file['args']);
                 return $file;
             },$debug_backtrace);
+            ElasticsearchQueryLog::appendLog(['type'=>$type,'payload'=>['time'=>$time.'ms','query'=>$query,'debug_backtrace'=>$debug_backtrace]]);
             \Barryvdh\Debugbar\Facade::getCollector('elasticsearch')->addMessage(['time'=>$time.'ms','query'=>$query,'debug_backtrace'=>$debug_backtrace],$type);
+        }else if(defined('ELASTICSEARCH_SSN_LOG_DEBUGBAR')&&ELASTICSEARCH_SSN_LOG_DEBUGBAR==true){
+            $key = "ElasticSearch->$type";
+            $arrQueryInfo = array();
+            $arrQueryInfo["host"] = json_encode(env("ELASTIC_HOSTS",'127.0.0.1'),JSON_UNESCAPED_UNICODE);
+            $arrQueryInfo["query"] = json_encode($query);
+            $arrQueryInfo["type"] = "ELASTICSEARCH";
+            $arrQueryInfo['connection_id'] = "";
+            $arrQueryInfo['start'] = $time_start;
+            $arrQueryInfo['end'] = microtime(true);
+            $arrQueryInfo['duration'] = $arrQueryInfo['end'] - $arrQueryInfo['start'];
+            $arrQueryInfo['file_line'] 	= debug()->filterTrackerFileLine(debug_backtrace());
+            debug()->addMessage("queries", $arrQueryInfo);
         }
     }
 }
