@@ -423,7 +423,7 @@ class ElasticsearchQuery
         try{
             $time_start = microtime(true);
             $key_debug = "GET";
-            if($this->cache){
+            if(env('ELASTIC_CACHE_ENABLED',true)&&$this->cache){
                 $key_debug .="_CACHE";
                 $key_cache = md5(json_encode($params)."_get");
                 if(!empty($this->cache_timeout)){
@@ -465,7 +465,7 @@ class ElasticsearchQuery
         try{
             $time_start = microtime(true);
             $key_debug = "COUNT";
-            if($this->cache){
+            if(env('ELASTIC_CACHE_ENABLED',true)&&$this->cache){
                 $key_debug .="_CACHE";
                 $key_cache = md5(json_encode($params)."_count");
                 if(!empty($this->cache_timeout)){

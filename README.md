@@ -18,6 +18,7 @@ ELASTIC_PASSWORD= admin #default: null
 ELASTIC_SCHEME = https #default: http
 ELASTIC_PATH= /data/elastic #default: null
 ELASTICSEARCH_SSN_LOG_DEBUGBAR = true # add log query to debugbar  on core sosanhnha
+ELASTIC_CACHE_ENABLED=true #default: true
 ```
 
 - Config without laravel lumen
