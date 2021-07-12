@@ -549,7 +549,7 @@ class ElasticsearchQuery
                 return $file;
             },$debug_backtrace);
             ElasticsearchQueryLog::appendLog(['type'=>$type,'payload'=>['time'=>$time.'ms','query'=>$query,'debug_backtrace'=>$debug_backtrace]]);
-            \Barryvdh\Debugbar\Facade::getCollector('elasticsearch')->addMessage(['time'=>$time.'ms','query'=>$query,'debug_backtrace'=>$debug_backtrace],$type);
+            \Barryvdh\Debugbar\Facade::getCollector('elasticsearch')->addMessage(json_encode(['time'=>$time.'ms','query'=>$query,'debug_backtrace'=>$debug_backtrace]),$type);
         }else if(defined('ELASTICSEARCH_SSN_LOG_DEBUGBAR')&&ELASTICSEARCH_SSN_LOG_DEBUGBAR==true){
             $key = "ElasticSearch->$type";
             $arrQueryInfo = array();
