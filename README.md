@@ -6,7 +6,7 @@ composer require ngocnm/elastic-query
 # Config
 - Register Service Provider
 ```php
-$app->register(\Ngocnm\ElasticQuery\ElasticsearchServiceProvider::class);
+\Ngocnm\ElasticQuery\ElasticsearchServiceProvider::class
 ```
 - Define env
 ```dotenv
@@ -98,7 +98,7 @@ $response = $client->select('field_1,field_2')->whereBetween('field_name',$value
 ```php
 //$distance = '1km' default 
 //column name map: location 
-$response = $client->select('field_1,field_2')->whereGeoDistance($lat,$lng,$distance)->get();
+$response = $client->select('field_1,field_2')->whereGeoDistance($lat,$lng,$distance,'asc')->get();
 ```
 -  Delete row by id
 ```php
