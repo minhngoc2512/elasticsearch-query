@@ -317,7 +317,7 @@ class ElasticsearchQuery
         }
     }
 
-    public function whereGeoDistance($lat,$lng,$distance='1km'){
+    public function whereGeoDistance($lat,$lng,$distance='1km',$sort=null){
         $this->filter['geo_distance'] =[
             "distance" =>$distance,
             "location" => [
@@ -325,6 +325,17 @@ class ElasticsearchQuery
                 "lon" => $lng
             ]
         ];
+        if(in_array($sort,['asc','des'])){
+            $this->sort = [
+                "_geo_distance"=>[
+                    "location"=>["lat"=>$lat,"lon"=>$lng],
+                    "order"=>$sort,
+                    "unit"=>"km",
+                    "distance_type" => "arc"
+
+                ]
+            ];
+        }
         return $this;
     }
 
