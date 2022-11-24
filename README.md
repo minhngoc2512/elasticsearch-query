@@ -1,5 +1,5 @@
 ### Elastic Query Builder For Lumen, Laravel
-#Install
+# Install
 ```
 composer require ngocnm/elastic-query
 ```
@@ -54,13 +54,13 @@ ELASTIC_CACHE_ENABLED=true #default: true
             return ClientBuilder::create()->setHosts($hosts)->build();
         });
 
-#Get query log
+# Get query log
 
 ```php
 $query_log =\Ngocnm\ElasticQuery\ElasticsearchQueryLog::getLog();
 ```
 
-#Query
+# Query
 - Create Object
 
 ```
